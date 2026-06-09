@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#CC0000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UNEZ Calendario">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="https://unez.edu.mx/wp-content/uploads/2023/07/logo-png.png">
+<title>UNEZ Calendario</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+  :root {
+    --unez-rojo: #CC0000;
+    --unez-negro: #111111;
+    --unez-gris: rgba(255,255,255,0.8);
+    --bg: #F7F8FC;
+    --surface: #FFFFFF;
+    --text: #1A1A2E;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+
+    /* Categorías */
+    --cat-examen: #EF4444;
+    --cat-pago: #F59E0B;
+    --cat-conferencia: #8B5CF6;
+    --cat-evento: #CC0000;
+    --cat-cumple: #EC4899;
+    --cat-falta: #6B7280;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--unez-rojo) 0%, #8B0000 100%);
+    padding: 24px;
+  }
+
+  .login-logo {
+    width: 120px; height: 120px;
+    background: #fff;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    overflow: hidden;
+    padding: 8px;
+  }
+  .login-logo img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    font-size: 26px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .login-sub {
+    color: rgba(255,255,255,0.75);
+    font-size: 13px;
+    margin-bottom: 36px;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+
+  .login-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%; max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+
+  .role-selector {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 22px;
+  }
+
+  .role-btn {
+    padding: 12px 8px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .role-btn.active {
+    border-color: var(--unez-rojo);
+    background: #FFE8E8;
+    color: var(--unez-rojo);
+  }
+
+  .role-btn span { display: block; font-size: 22px; margin-bottom: 4px; }
+
+  .field-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .field-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+
+  .field-input:focus { border-color: var(--unez-rojo); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--unez-rojo);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover { background: #990000; }
+
+  .login-hint {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── APP SHELL ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  /* Header */
+  .app-header {
+    background: var(--unez-rojo);
+    padding: 14px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .header-logo {
+    width: 40px; height: 40px;
+    background: #fff;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    padding: 3px;
+  }
+  .header-logo img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+
+  .header-info h1 {
+    color: #fff; font-size: 15px; font-weight: 700;
+  }
+
+  .header-info p {
+    color: rgba(255,255,255,0.75); font-size: 11px;
+  }
+
+  .header-actions { display: flex; gap: 8px; }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff;
+    position: relative;
+  }
+
+  .notif-badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 8px; height: 8px;
+    background: var(--unez-negro);
+    border-radius: 50%;
+    border: 1.5px solid var(--unez-rojo);
+  }
+
+  /* Month nav */
+  .month-nav {
+    background: var(--unez-rojo);
+    padding: 0 16px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .month-nav-btn {
+    background: rgba(255,255,255,0.15);
+    border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 8px;
+    font-size: 16px; cursor: pointer;
+  }
+
+  .month-label {
+    color: #fff; font-size: 17px; font-weight: 700;
+    font-family: 'Playfair Display', serif;
+    text-transform: capitalize;
+  }
+
+  /* Calendar grid */
+  .calendar-section { padding: 16px; }
+
+  .day-headers {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 6px;
+  }
+
+  .day-header {
+    text-align: center; font-size: 11px;
+    font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; padding: 4px 0;
+  }
+
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 4px 2px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+  }
+
+  .cal-cell:hover { background: #FFE8E8; }
+
+  .cal-cell.today { background: var(--unez-rojo); }
+  .cal-cell.today .cal-day-num { color: #fff; }
+
+  .cal-cell.selected { background: #FFE8E8; outline: 2px solid var(--unez-rojo); }
+
+  .cal-cell.other-month .cal-day-num { color: #D1D5DB; }
+
+  .cal-day-num {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    line-height: 1;
+  }
+
+  .cal-dots {
+    display: flex; gap: 2px; flex-wrap: wrap;
+    justify-content: center; margin-top: 2px;
+  }
+
+  .cal-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+
+  /* Events panel */
+  .events-panel { padding: 0 16px 16px; }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .panel-title {
+    font-size: 15px; font-weight: 700; color: var(--text);
+  }
+
+  .panel-date {
+    font-size: 12px; color: var(--text-muted);
+  }
+
+  .btn-add {
+    background: var(--unez-rojo);
+    color: #fff; border: none;
+    padding: 7px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+  }
+
+  .event-card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex; align-items: flex-start; gap: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    border-left: 4px solid transparent;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+  .event-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+
+  .event-info { flex: 1; }
+  .event-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .event-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  .event-role-badge {
+    font-size: 10px; font-weight: 600;
+    padding: 1px 7px; border-radius: 20px;
+    background: #F3F4F6; color: var(--text-muted);
+  }
+
+  .event-delete {
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; color: #D1D5DB; padding: 0;
+    line-height: 1;
+  }
+  .event-delete:hover { color: var(--cat-examen); }
+
+  .empty-state {
+    text-align: center; padding: 32px 16px;
+    color: var(--text-muted); font-size: 14px;
+  }
+  .empty-state span { display: block; font-size: 36px; margin-bottom: 8px; }
+
+  /* Filter chips */
+  .filter-chips {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding: 0 16px 12px; scrollbar-width: none;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+
+  .chip {
+    flex-shrink: 0;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: #fff; color: var(--text-muted);
+    cursor: pointer; white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .chip.active {
+    border-color: var(--unez-rojo);
+    background: #FFE8E8;
+    color: var(--unez-rojo);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 20px 20px 32px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .modal-handle {
+    width: 40px; height: 4px; background: #E5E7EB;
+    border-radius: 2px; margin: 0 auto 18px;
+  }
+
+  .modal-title {
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  .form-group { margin-bottom: 14px; }
+
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+
+  .cat-option {
+    padding: 9px 6px;
+    border: 2px solid var(--border);
+    border-radius: 10px; text-align: center;
+    cursor: pointer; font-size: 12px; font-weight: 500;
+    color: var(--text-muted); transition: all 0.15s;
+  }
+
+  .cat-option span { display: block; font-size: 20px; margin-bottom: 2px; }
+  .cat-option.selected { color: #fff; border-color: transparent; }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  .btn-secondary {
+    flex: 1; padding: 12px;
+    background: #F3F4F6; border: none;
+    border-radius: 12px; font-size: 14px;
+    font-weight: 600; cursor: pointer; color: var(--text);
+  }
+
+  .btn-primary-modal {
+    flex: 2; padding: 12px;
+    background: var(--unez-rojo); color: #fff;
+    border: none; border-radius: 12px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+  /* Notif panel */
+  .notif-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 150;
+  }
+  .notif-overlay.open { display: block; }
+
+  .notif-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 88%; max-width: 340px;
+    background: #fff; padding: 24px 16px;
+    overflow-y: auto; z-index: 151;
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: none; } }
+
+  .notif-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .notif-title { font-size: 18px; font-weight: 700; }
+  .notif-close { background: none; border: none; font-size: 20px; cursor: pointer; }
+
+  .notif-item {
+    background: #F9FAFB; border-radius: 12px;
+    padding: 12px; margin-bottom: 8px;
+    border-left: 3px solid transparent;
+  }
+
+  .notif-item-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .notif-item-date { font-size: 11px; color: var(--text-muted); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid var(--border);
+    display: flex; padding: 8px 0 12px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer;
+    background: none; border: none;
+  }
+
+  .nav-item.active { color: var(--unez-rojo); }
+
+  .nav-icon { font-size: 22px; }
+
+  .main-content { padding-bottom: 70px; }
+
+  /* Upcoming section */
+  .section-label {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0 16px; margin-bottom: 10px;
+  }
+
+  .upcoming-scroll {
+    display: flex; gap: 10px;
+    padding: 0 16px 16px; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .upcoming-scroll::-webkit-scrollbar { display: none; }
+
+  .upcoming-card {
+    flex-shrink: 0; width: 130px;
+    background: var(--surface);
+    border-radius: 16px; padding: 14px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    cursor: pointer;
+  }
+
+  .upcoming-day {
+    font-size: 28px; font-weight: 700;
+    font-family: 'Playfair Display', serif;
+    line-height: 1;
+  }
+
+  .upcoming-month {
+    font-size: 11px; color: var(--text-muted);
+    margin-bottom: 10px; text-transform: uppercase;
+  }
+
+  .upcoming-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .upcoming-cat { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo"><img src="https://unez.edu.mx/wp-content/uploads/2023/07/logo-png.png" alt="UNEZ" onerror="this.parentElement.innerHTML='<span style=&quot;font-family:serif;font-size:22px;font-weight:700;color:#CC0000&quot;>UNEZ</span>'"></div>
+  <h1 class="login-title">Universidad Emiliano Zapata</h1>
+  <p class="login-sub">Calendario Escolar · ACODE</p>
+
+  <div class="login-card">
+    <p class="field-label" style="margin-bottom:10px;">Ingresa como</p>
+    <div class="role-selector">
+      <button class="role-btn active" onclick="selectRole('alumno',this)">
+        <span>🎓</span>Alumno
+      </button>
+      <button class="role-btn" onclick="selectRole('maestro',this)">
+        <span>👨‍🏫</span>Maestro
+      </button>
+    </div>
+
+    <div class="field-label">Nombre</div>
+    <input class="field-input" id="login-name" type="text" placeholder="Tu nombre completo">
+
+    <div class="field-label">Matrícula / ID</div>
+    <input class="field-input" id="login-id" type="text" placeholder="Ej. 2310045">
+
+    <button class="btn-primary" onclick="doLogin()">Entrar al calendario</button>
+    <p class="login-hint">Demo — sin contraseña real requerida</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-left">
+      <div class="header-logo"><img src="https://unez.edu.mx/wp-content/uploads/2023/07/logo-png.png" alt="UNEZ" onerror="this.parentElement.innerHTML='UNEZ'"></div>
+      <div class="header-info">
+        <h1>Calendario UNEZ</h1>
+        <p id="user-label">Alumno · 2310045</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openNotif()" title="Notificaciones">
+        🔔<span class="notif-badge" id="notif-badge"></span>
+      </button>
+      <button class="icon-btn" onclick="logout()">🚪</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- Month nav -->
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="month-label" id="month-label"></span>
+      <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+
+    <!-- Calendar -->
+    <div class="calendar-section">
+      <div class="day-headers">
+        <div class="day-header">Dom</div>
+        <div class="day-header">Lun</div>
+        <div class="day-header">Mar</div>
+        <div class="day-header">Mié</div>
+        <div class="day-header">Jue</div>
+        <div class="day-header">Vie</div>
+        <div class="day-header">Sáb</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <!-- Upcoming -->
+    <p class="section-label">Próximos eventos</p>
+    <div class="upcoming-scroll" id="upcoming-scroll"></div>
+
+    <!-- Filter chips -->
+    <div class="filter-chips" id="filter-chips"></div>
+
+    <!-- Events for selected day -->
+    <div class="events-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" id="panel-title">Hoy</div>
+          <div class="panel-date" id="panel-date"></div>
+        </div>
+        <button class="btn-add" onclick="openModal()">+ Agregar</button>
+      </div>
+      <div id="events-list"></div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('calendar',this)">
+      <span class="nav-icon">📅</span>Calendario
+    </button>
+    <button class="nav-item" onclick="switchTab('all',this)">
+      <span class="nav-icon">📋</span>Todos
+    </button>
+    <button class="nav-item" onclick="switchTab('profile',this)">
+      <span class="nav-icon">👤</span>Perfil
+    </button>
+  </div>
+</div>
+
+<!-- ADD EVENT MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nuevo evento</div>
+
+    <div class="form-group">
+      <div class="field-label">Título</div>
+      <input class="field-input" id="ev-title" placeholder="Ej. Examen de Cálculo">
+    </div>
+
+    <div class="form-group">
+      <div class="field-label">Categoría</div>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+
+    <div class="form-group">
+      <div class="field-label">Hora (opcional)</div>
+      <input class="field-input" id="ev-time" type="time">
+    </div>
+
+    <div class="form-group">
+      <div class="field-label">Nota (opcional)</div>
+      <input class="field-input" id="ev-note" placeholder="Detalles adicionales">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary-modal" onclick="saveEvent()">Guardar evento</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-overlay" id="notif-overlay" onclick="closeNotif()"></div>
+<div class="notif-panel" id="notif-panel" style="display:none;">
+  <div class="notif-header">
+    <span class="notif-title">🔔 Notificaciones</span>
+    <button class="notif-close" onclick="closeNotif()">✕</button>
+  </div>
+  <button onclick="scheduleNotifications()" style="width:100%;margin-bottom:14px;padding:10px;background:#CC0000;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
+    📲 Activar notificaciones en este dispositivo
+  </button>
+  <div id="notif-list"></div>
+</div>
+
+<script>
+// ── STATE ──
+let currentUser = { name: '', id: '', role: 'alumno' };
+let selectedRole = 'alumno';
+let today = new Date();
+let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+let selectedDate = new Date(today);
+let activeFilter = 'todos';
+let events = [];
+
+// ── CATEGORIES ──
+const CATEGORIES = {
+  examen:       { label: 'Examen',      icon: '📝', color: '#EF4444', roles: ['maestro'] },
+  pago:         { label: 'Pago',        icon: '💳', color: '#F59E0B', roles: ['maestro'] },
+  conferencia:  { label: 'Conferencia', icon: '🎤', color: '#8B5CF6', roles: ['maestro'] },
+  evento:       { label: 'Evento',      icon: '🏫', color: '#CC0000', roles: ['maestro'] },
+  cumpleanos:   { label: 'Cumpleaños',  icon: '🎂', color: '#EC4899', roles: ['alumno','maestro'] },
+  falta:        { label: 'Falta col.',  icon: '🚫', color: '#6B7280', roles: ['alumno','maestro'] },
+};
+
+// ── SAMPLE DATA ──
+function loadSampleEvents() {
+  // Calendario Tetramestre Mayo-Agosto 2026 — UNEZ
+  events = [
+    // ── MAYO ──
+    { id: 1,  date: '2026-05-05', title: 'Inicio de tetramestre', cat: 'evento', time: '', note: 'Inicio oficial del tetramestre Mayo-Agosto 2026', role: 'maestro', author: 'UNEZ' },
+    { id: 2,  date: '2026-05-06', title: 'Inicio de tetramestre', cat: 'evento', time: '', note: 'Segundo día de inicio de clases', role: 'maestro', author: 'UNEZ' },
+    { id: 3,  date: '2026-05-15', title: 'Receso académico y administrativo', cat: 'evento', time: '', note: 'No hay clases — Receso oficial UNEZ', role: 'maestro', author: 'UNEZ' },
+    { id: 4,  date: '2026-05-22', title: '💳 Límite pago sin recargo', cat: 'pago', time: '', note: 'Fecha límite para pagar parcialidad sin recargo — Mayo', role: 'maestro', author: 'UNEZ' },
+    // ── JUNIO ──
+    { id: 5,  date: '2026-06-12', title: '💳 Límite pago sin recargo', cat: 'pago', time: '', note: 'Fecha límite para pagar parcialidad sin recargo — ¡No dejes pasar!', role: 'maestro', author: 'UNEZ' },
+    { id: 6,  date: '2026-06-15', title: 'Exámenes primer parcial', cat: 'examen', time: '', note: 'Inicio del periodo de exámenes primer parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 7,  date: '2026-06-16', title: 'Exámenes primer parcial', cat: 'examen', time: '', note: 'Periodo de exámenes primer parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 8,  date: '2026-06-17', title: 'Exámenes primer parcial', cat: 'examen', time: '', note: 'Periodo de exámenes primer parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 9,  date: '2026-06-18', title: 'Exámenes primer parcial', cat: 'examen', time: '', note: 'Periodo de exámenes primer parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 10, date: '2026-06-19', title: 'Exámenes primer parcial', cat: 'examen', time: '', note: 'Último día de exámenes primer parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 11, date: '2026-06-22', title: '💳 Límite pago sin recargo', cat: 'pago', time: '', note: 'Fecha límite para pagar parcialidad sin recargo — Junio', role: 'maestro', author: 'UNEZ' },
+    // ── JULIO ──
+    { id: 12, date: '2026-07-06', title: 'Inicio de inscripciones', cat: 'evento', time: '', note: 'Comienza el periodo de inscripciones nuevo ingreso', role: 'maestro', author: 'UNEZ' },
+    { id: 13, date: '2026-07-22', title: 'Fin de tetramestre', cat: 'evento', time: '', note: 'Cierre oficial del tetramestre Mayo-Agosto 2026', role: 'maestro', author: 'UNEZ' },
+    // ── AGOSTO ──
+    { id: 14, date: '2026-08-10', title: 'Exámenes segundo parcial', cat: 'examen', time: '', note: 'Inicio del periodo de exámenes segundo parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 15, date: '2026-08-11', title: 'Exámenes segundo parcial', cat: 'examen', time: '', note: 'Periodo de exámenes segundo parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 16, date: '2026-08-12', title: 'Exámenes segundo parcial', cat: 'examen', time: '', note: 'Periodo de exámenes segundo parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 17, date: '2026-08-13', title: 'Exámenes segundo parcial', cat: 'examen', time: '', note: 'Periodo de exámenes segundo parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 18, date: '2026-08-14', title: 'Exámenes segundo parcial', cat: 'examen', time: '', note: 'Último día de exámenes segundo parcial', role: 'maestro', author: 'UNEZ' },
+    { id: 19, date: '2026-08-16', title: 'Inicio reinscripciones', cat: 'evento', time: '', note: 'Comienza el periodo de reinscripciones', role: 'maestro', author: 'UNEZ' },
+    { id: 20, date: '2026-08-17', title: 'Exámenes extraordinarios (ER)', cat: 'examen', time: '', note: 'Inicio de exámenes extraordinarios', role: 'maestro', author: 'UNEZ' },
+    { id: 21, date: '2026-08-18', title: 'Exámenes extraordinarios (ER)', cat: 'examen', time: '', note: 'Exámenes extraordinarios', role: 'maestro', author: 'UNEZ' },
+    { id: 22, date: '2026-08-19', title: 'Exámenes extraordinarios (ER)', cat: 'examen', time: '', note: 'Exámenes extraordinarios', role: 'maestro', author: 'UNEZ' },
+    { id: 23, date: '2026-08-20', title: 'Exámenes extraordinarios (ER)', cat: 'examen', time: '', note: 'Exámenes extraordinarios', role: 'maestro', author: 'UNEZ' },
+    { id: 24, date: '2026-08-21', title: 'Fin extraordinarios y reinscripciones', cat: 'examen', time: '', note: 'Último día de extraordinarios y cierre de reinscripciones', role: 'maestro', author: 'UNEZ' },
+    { id: 25, date: '2026-08-24', title: 'Planeación y capacitación docente', cat: 'conferencia', time: '', note: 'Semana de planeación y capacitación para maestros', role: 'maestro', author: 'UNEZ' },
+    { id: 26, date: '2026-08-25', title: 'Planeación y capacitación docente', cat: 'conferencia', time: '', note: 'Capacitación docente', role: 'maestro', author: 'UNEZ' },
+    { id: 27, date: '2026-08-26', title: 'Planeación y capacitación docente', cat: 'conferencia', time: '', note: 'Capacitación docente', role: 'maestro', author: 'UNEZ' },
+    { id: 28, date: '2026-08-27', title: 'Planeación y capacitación docente', cat: 'conferencia', time: '', note: 'Capacitación docente', role: 'maestro', author: 'UNEZ' },
+    { id: 29, date: '2026-08-28', title: 'Fin planeación y capacitación docente', cat: 'conferencia', time: '', note: 'Último día de capacitación docente', role: 'maestro', author: 'UNEZ' },
+  ];
+}
+
+function fmt(d) {
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmtDisplay(str) {
+  const [y,m,d] = str.split('-');
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${parseInt(d)} de ${months[parseInt(m)-1]}`;
+}
+
+// ── LOGIN ──
+function selectRole(role, btn) {
+  selectedRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const id = document.getElementById('login-id').value.trim();
+  if (!name) { alert('Ingresa tu nombre'); return; }
+  currentUser = { name, id: id || '0000', role: selectedRole };
+  document.getElementById('user-label').textContent = `${selectedRole === 'maestro' ? 'Maestro' : 'Alumno'} · ${currentUser.id}`;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadSampleEvents();
+  // Start calendar view on May 2026 (tetramestre start)
+  viewDate = new Date(2026, 4, 1);
+  selectedDate = new Date(today);
+  renderAll();
+  setTimeout(scheduleNotifications, 1000);
+}
+
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  events = [];
+}
+
+// ── RENDER ──
+function renderAll() {
+  renderCalendar();
+  renderEvents();
+  renderUpcoming();
+  renderFilterChips();
+  renderNotifications();
+}
+
+function renderCalendar() {
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('month-label').textContent = `${months[m]} ${y}`;
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const daysInPrev = new Date(y, m, 0).getDate();
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const todayStr = fmt(today);
+  const selStr = fmt(selectedDate);
+
+  // Event map
+  const evMap = {};
+  events.forEach(ev => {
+    if (!evMap[ev.date]) evMap[ev.date] = [];
+    evMap[ev.date].push(ev.cat);
+  });
+
+  let cells = [];
+
+  // Prev month cells
+  for (let i = firstDay - 1; i >= 0; i--) {
+    cells.push({ day: daysInPrev - i, month: m-1, year: y, other: true });
+  }
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, month: m, year: y, other: false });
+  }
+  // Next month
+  while (cells.length % 7 !== 0) {
+    cells.push({ day: cells.length - firstDay - daysInMonth + 1, month: m+1, year: y, other: true });
+  }
+
+  cells.forEach(c => {
+    const dateStr = c.year+'-'+String(c.month+1).padStart(2,'0')+'-'+String(c.day).padStart(2,'0');
+    const div = document.createElement('div');
+    div.className = 'cal-cell';
+    if (c.other) div.classList.add('other-month');
+    if (dateStr === todayStr && !c.other) div.classList.add('today');
+    if (dateStr === selStr && !c.other) div.classList.add('selected');
+
+    let dotsHTML = '';
+    if (evMap[dateStr]) {
+      const cats = [...new Set(evMap[dateStr])].slice(0,3);
+      dotsHTML = '<div class="cal-dots">'+cats.map(cat=>`<div class="cal-dot" style="background:${CATEGORIES[cat]?.color||'#999'}"></div>`).join('')+'</div>';
+    }
+
+    div.innerHTML = `<span class="cal-day-num">${c.day}</span>${dotsHTML}`;
+
+    if (!c.other) {
+      div.onclick = () => {
+        selectedDate = new Date(c.year, c.month, c.day);
+        renderCalendar();
+        renderEvents();
+        updatePanelHeader();
+      };
+    }
+    grid.appendChild(div);
+  });
+}
+
+function updatePanelHeader() {
+  const selStr = fmt(selectedDate);
+  const todayStr = fmt(today);
+  document.getElementById('panel-title').textContent = selStr === todayStr ? 'Hoy' : fmtDisplay(selStr);
+  document.getElementById('panel-date').textContent = selStr === todayStr ? fmtDisplay(selStr) : '';
+}
+
+function renderEvents() {
+  updatePanelHeader();
+  const selStr = fmt(selectedDate);
+  const list = document.getElementById('events-list');
+
+  let filtered = events.filter(e => e.date === selStr);
+  if (activeFilter !== 'todos') filtered = filtered.filter(e => e.cat === activeFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state"><span>📭</span>Sin eventos para este día.<br>¡Agrega uno!</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(ev => {
+    const cat = CATEGORIES[ev.cat] || {};
+    const canDelete = ev.role === currentUser.role || ev.author === 'Tú';
+    return `
+      <div class="event-card" style="border-left-color:${cat.color}">
+        <div class="event-icon" style="background:${cat.color}22">${cat.icon}</div>
+        <div class="event-info">
+          <div class="event-title">${ev.title}</div>
+          <div class="event-meta">
+            ${ev.time ? `<span>⏰ ${ev.time}</span>` : ''}
+            ${ev.note ? `<span>${ev.note}</span>` : ''}
+            <span class="event-role-badge">${ev.author}</span>
+          </div>
+        </div>
+        ${canDelete ? `<button class="event-delete" onclick="deleteEvent(${ev.id})">🗑</button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderUpcoming() {
+  const scroll = document.getElementById('upcoming-scroll');
+  const todayStr = fmt(today);
+  const upcoming = events
+    .filter(e => e.date >= todayStr)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
+
+  if (!upcoming.length) { scroll.innerHTML = '<p style="color:#9CA3AF;font-size:13px;padding:8px 0">Sin próximos eventos</p>'; return; }
+
+  scroll.innerHTML = upcoming.map(ev => {
+    const cat = CATEGORIES[ev.cat] || {};
+    const [y,m,d] = ev.date.split('-');
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return `
+      <div class="upcoming-card" style="border-top: 3px solid ${cat.color}" onclick="jumpToDate('${ev.date}')">
+        <div class="upcoming-day" style="color:${cat.color}">${parseInt(d)}</div>
+        <div class="upcoming-month">${months[parseInt(m)-1]}</div>
+        <div style="font-size:18px">${cat.icon}</div>
+        <div class="upcoming-title">${ev.title}</div>
+        <div class="upcoming-cat">${cat.label}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function jumpToDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  selectedDate = new Date(y, m-1, d);
+  viewDate = new Date(y, m-1, 1);
+  renderAll();
+}
+
+function renderFilterChips() {
+  const chips = document.getElementById('filter-chips');
+  const all = [{ key:'todos', label:'Todos', icon:'✨' },
+    ...Object.entries(CATEGORIES).map(([k,v])=>({ key:k, label:v.label, icon:v.icon }))
+  ];
+  chips.innerHTML = all.map(c => `
+    <div class="chip ${activeFilter===c.key?'active':''}" onclick="setFilter('${c.key}')">
+      ${c.icon} ${c.label}
+    </div>
+  `).join('');
+}
+
+function setFilter(key) {
+  activeFilter = key;
+  renderFilterChips();
+  renderEvents();
+}
+
+function changeMonth(dir) {
+  viewDate.setMonth(viewDate.getMonth() + dir);
+  renderCalendar();
+}
+
+// ── NOTIFICATIONS ──
+function renderNotifications() {
+  const todayStr = fmt(today);
+  const future = events
+    .filter(e => e.date >= todayStr)
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  const badge = document.getElementById('notif-badge');
+  badge.style.display = future.length ? 'block' : 'none';
+
+  const list = document.getElementById('notif-list');
+  if (!future.length) {
+    list.innerHTML = '<p style="color:#9CA3AF;font-size:13px;text-align:center;padding:24px">Sin notificaciones pendientes</p>';
+    return;
+  }
+
+  list.innerHTML = future.map(ev => {
+    const cat = CATEGORIES[ev.cat] || {};
+    const daysLeft = Math.ceil((new Date(ev.date)-today)/(1000*60*60*24));
+    const label = daysLeft === 0 ? 'Hoy' : daysLeft === 1 ? 'Mañana' : `En ${daysLeft} días`;
+    return `
+      <div class="notif-item" style="border-left-color:${cat.color}">
+        <div class="notif-item-title">${cat.icon} ${ev.title}</div>
+        <div class="notif-item-date">${label} · ${fmtDisplay(ev.date)} ${ev.time ? '· '+ev.time : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openNotif() {
+  document.getElementById('notif-overlay').classList.add('open');
+  document.getElementById('notif-panel').style.display = 'block';
+}
+
+function closeNotif() {
+  document.getElementById('notif-overlay').classList.remove('open');
+  document.getElementById('notif-panel').style.display = 'none';
+}
+
+// ── ADD EVENT MODAL ──
+let selectedCat = '';
+
+function openModal() {
+  selectedCat = '';
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-time').value = '';
+  document.getElementById('ev-note').value = '';
+
+  // Only show allowed categories for role
+  const catGrid = document.getElementById('cat-grid');
+  const allowed = Object.entries(CATEGORIES).filter(([k,v]) => v.roles.includes(currentUser.role));
+  catGrid.innerHTML = allowed.map(([k,v]) => `
+    <div class="cat-option" id="cat-${k}" onclick="selectCat('${k}')" style="">
+      <span>${v.icon}</span>${v.label}
+    </div>
+  `).join('');
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function selectCat(key) {
+  selectedCat = key;
+  document.querySelectorAll('.cat-option').forEach(el => {
+    el.classList.remove('selected');
+    el.style.background = '';
+    el.style.color = '';
+  });
+  const el = document.getElementById('cat-'+key);
+  el.classList.add('selected');
+  el.style.background = CATEGORIES[key].color;
+  el.style.color = '#fff';
+  el.style.borderColor = CATEGORIES[key].color;
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function saveEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  if (!title) { alert('Escribe un título'); return; }
+  if (!selectedCat) { alert('Selecciona una categoría'); return; }
+
+  const ev = {
+    id: Date.now(),
+    date: fmt(selectedDate),
+    title,
+    cat: selectedCat,
+    time: document.getElementById('ev-time').value,
+    note: document.getElementById('ev-note').value.trim(),
+    role: currentUser.role,
+    author: currentUser.role === 'maestro' ? `Prof. ${currentUser.name.split(' ')[0]}` : 'Tú',
+  };
+
+  events.push(ev);
+  closeModal();
+  renderAll();
+}
+
+function deleteEvent(id) {
+  if (!confirm('¿Eliminar este evento?')) return;
+  events = events.filter(e => e.id !== id);
+  renderAll();
+}
+
+// ── TABS ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab === 'profile') showProfile();
+  else if (tab === 'all') showAll();
+  else showCalendar();
+}
+
+function showCalendar() {
+  renderAll();
+}
+
+function showAll() {
+  const list = document.getElementById('events-list');
+  const panel = document.querySelector('.panel-header');
+  panel.querySelector('.panel-title').textContent = 'Todos los eventos';
+  panel.querySelector('.panel-date').textContent = '';
+
+  const sorted = [...events].sort((a,b)=>a.date.localeCompare(b.date));
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty-state"><span>📭</span>No hay eventos aún.</div>';
+    return;
+  }
+  list.innerHTML = sorted.map(ev => {
+    const cat = CATEGORIES[ev.cat] || {};
+    return `
+      <div class="event-card" style="border-left-color:${cat.color}">
+        <div class="event-icon" style="background:${cat.color}22">${cat.icon}</div>
+        <div class="event-info">
+          <div class="event-title">${ev.title}</div>
+          <div class="event-meta">
+            <span>📅 ${fmtDisplay(ev.date)}</span>
+            ${ev.time ? `<span>⏰ ${ev.time}</span>` : ''}
+            <span class="event-role-badge">${ev.author}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showProfile() {
+  const list = document.getElementById('events-list');
+  const panel = document.querySelector('.panel-header');
+  panel.querySelector('.panel-title').textContent = 'Mi perfil';
+  panel.querySelector('.panel-date').textContent = '';
+  const myEvents = events.filter(e => e.author === 'Tú' || (currentUser.role === 'maestro' && e.role === 'maestro'));
+  list.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:12px">
+      <div style="font-size:40px;text-align:center;margin-bottom:10px">${currentUser.role==='maestro'?'👨‍🏫':'🎓'}</div>
+      <div style="text-align:center;font-size:18px;font-weight:700">${currentUser.name}</div>
+      <div style="text-align:center;font-size:13px;color:#6B7280;margin-bottom:16px">${currentUser.role==='maestro'?'Maestro':'Alumno'} · ${currentUser.id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#FFE8E8;border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:24px;font-weight:700;color:#CC0000">${events.length}</div>
+          <div style="font-size:12px;color:#6B7280">Eventos totales</div>
+        </div>
+        <div style="background:#FFE8E8;border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:24px;font-weight:700;color:#CC0000">${myEvents.length}</div>
+          <div style="font-size:12px;color:#6B7280">Mis eventos</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="logout()" style="width:100%;border-radius:12px;padding:12px">Cerrar sesión</button>
+  `;
+}
+
+// ── PWA SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      console.log('SW registrado:', reg.scope);
+      swRegistration = reg;
+    } catch(e) {
+      console.log('SW error:', e);
+    }
+  });
+}
+
+let swRegistration = null;
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+async function scheduleNotifications() {
+  const granted = await requestNotifPermission();
+  if (!granted) {
+    console.log('Notificaciones no permitidas');
+    return;
+  }
+
+  // Wait for SW to be ready
+  await navigator.serviceWorker.ready;
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) return;
+
+  const todayStr = fmt(today);
+  const upcoming = events.filter(e => e.date >= todayStr);
+
+  // Save to IndexedDB via SW so it persists when app is closed
+  await saveEventsToDB(upcoming);
+
+  // Also send to active SW controller
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SCHEDULE_NOTIFS',
+      events: upcoming,
+      today: todayStr
+    });
+  }
+
+  // Register periodic background sync if supported
+  if ('periodicSync' in reg) {
+    try {
+      await reg.periodicSync.register('unez-daily-check', { minInterval: 6 * 60 * 60 * 1000 });
+      console.log('Periodic sync registrado');
+    } catch(e) {
+      console.log('Periodic sync no soportado:', e);
+    }
+  }
+
+  showToast('✅ Notificaciones activadas');
+}
+
+// Save events to IndexedDB (accessible by SW)
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('unez-cal-db', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('events')) db.createObjectStore('events', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('flags')) db.createObjectStore('flags', { keyPath: 'key' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function saveEventsToDB(evs) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction('events', 'readwrite');
+    const store = tx.objectStore('events');
+    store.clear();
+    evs.forEach(e => store.put(e));
+  } catch(err) { console.log('DB error:', err); }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;animation:fadeIn .3s ease';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// Override doLogin to also schedule notifications
+const _origDoLogin = doLogin;
+</script>
+</body>
+</html>

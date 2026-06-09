@@ -1,0 +1,26 @@
+{
+  "name": "UNEZ Calendario",
+  "short_name": "UNEZ Cal",
+  "description": "Calendario escolar Universidad Emiliano Zapata",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#CC0000",
+  "theme_color": "#CC0000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://unez.edu.mx/wp-content/uploads/2023/07/logo-png.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://unez.edu.mx/wp-content/uploads/2023/07/logo-png.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "es-MX"
+}
