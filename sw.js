@@ -1,5 +1,5 @@
 // sw.js — UNEZ Calendario Service Worker
-const CACHE_NAME = 'unez-cal-v1';
+const CACHE_NAME = 'unez-cal-v2'; // ⬅️ Sube este número cada vez que subas cambios nuevos
 const ASSETS = ['./index.html', './manifest.json'];
 
 // ── INSTALL: cache app shell ──
@@ -22,10 +22,27 @@ self.addEventListener('activate', event => {
   scheduleDailyCheck();
 });
 
-// ── FETCH: serve from cache, fallback to network ──
+// ── FETCH: network-first for the HTML (so updates apply right away),
+//           cache-first for everything else (faster, works offline) ──
 self.addEventListener('fetch', event => {
+  const req = event.request;
+  const isHTML = req.mode === 'navigate' || req.url.endsWith('/') || req.url.endsWith('index.html');
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    caches.match(req).then(cached => cached || fetch(req))
   );
 });
 
@@ -85,13 +102,17 @@ function fmtDisplay(str) {
 }
 
 const CAT_ICONS = {
-  examen: '📝', pago: '💳', conferencia: '🎤',
-  evento: '🏫', cumpleanos: '🎂', falta: '🚫'
+  cancelacion: '🚫', conferencia: '🎤', evento_social: '🎉', marcha: '🚩',
+  examenes: '📝', cierre_ciclo: '🔚', inicio_ciclo: '🏁',
+  convivio: '🥳', falta_colectiva: '🙅', cumpleanos: '🎂',
+  tarea: '📚', proyecto: '🛠️', presentacion: '🎯'
 };
 
 const CAT_LABELS = {
-  examen: 'Examen', pago: 'Pago', conferencia: 'Conferencia',
-  evento: 'Evento', cumpleanos: 'Cumpleaños', falta: 'Falta colectiva'
+  cancelacion: 'Cancelación de clases', conferencia: 'Conferencia', evento_social: 'Evento social',
+  marcha: 'Marcha', examenes: 'Periodo de exámenes', cierre_ciclo: 'Cierre de ciclo', inicio_ciclo: 'Inicio de ciclo',
+  convivio: 'Convivio', falta_colectiva: 'Falta colectiva', cumpleanos: 'Cumpleaños',
+  tarea: 'Tarea', proyecto: 'Proyecto', presentacion: 'Presentación'
 };
 
 // Notify for events happening TODAY, TOMORROW, or in 2 DAYS
