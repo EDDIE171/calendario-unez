@@ -539,24 +539,68 @@
   <p class="login-sub">Calendario Escolar · ACODE</p>
 
   <div class="login-card">
-    <p class="field-label" style="margin-bottom:10px;">Ingresa como</p>
-    <div class="role-selector">
-      <button class="role-btn active" onclick="selectRole('alumno',this)">
-        <span>🎓</span>Alumno
+
+    <!-- Tabs: Iniciar sesión / Registrarse -->
+    <div class="role-selector" style="margin-bottom:18px;">
+      <button class="role-btn active" id="tab-login-btn" onclick="showAuthTab('login')">
+        <span>🔑</span>Iniciar sesión
       </button>
-      <button class="role-btn" onclick="selectRole('maestro',this)">
-        <span>👨‍🏫</span>Maestro
+      <button class="role-btn" id="tab-register-btn" onclick="showAuthTab('register')">
+        <span>📝</span>Registrarme
       </button>
     </div>
 
-    <div class="field-label">Nombre</div>
-    <input class="field-input" id="login-name" type="text" placeholder="Tu nombre completo">
+    <!-- ── LOGIN FORM ── -->
+    <div id="login-form">
+      <div class="field-label">Matrícula</div>
+      <input class="field-input" id="login-matricula" type="text" placeholder="Ej. 2310045">
 
-    <div class="field-label">Matrícula / ID</div>
-    <input class="field-input" id="login-id" type="text" placeholder="Ej. 2310045">
+      <div class="field-label">Contraseña</div>
+      <input class="field-input" id="login-password" type="password" placeholder="Tu contraseña">
 
-    <button class="btn-primary" onclick="doLogin()">Entrar al calendario</button>
-    <p class="login-hint">Demo — sin contraseña real requerida</p>
+      <button class="btn-primary" onclick="iniciarSesion()">Entrar al calendario</button>
+      <p class="login-hint" id="login-error" style="color:#CC0000;"></p>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div id="register-form" style="display:none;">
+      <p class="field-label" style="margin-bottom:10px;">Tipo de cuenta</p>
+      <div class="role-selector" style="grid-template-columns:1fr 1fr 1fr;">
+        <button class="role-btn active" onclick="selectRole('alumno',this)">
+          <span>🎓</span>Alumno
+        </button>
+        <button class="role-btn" onclick="selectRole('maestro',this)">
+          <span>👨‍🏫</span>Maestro
+        </button>
+        <button class="role-btn" onclick="selectRole('directivo',this)">
+          <span>🏛️</span>Directivo
+        </button>
+      </div>
+
+      <div class="field-label">Nombre completo</div>
+      <input class="field-input" id="reg-name" type="text" placeholder="Tu nombre completo">
+
+      <div class="field-label">Matrícula</div>
+      <input class="field-input" id="reg-matricula" type="text" placeholder="Ej. 2310045">
+
+      <div class="field-label">Contraseña</div>
+      <input class="field-input" id="reg-password" type="password" placeholder="Mínimo 6 caracteres">
+
+      <div id="reg-grado-wrap">
+        <div class="field-label">Grado / Tetramestre</div>
+        <input class="field-input" id="reg-grado" type="text" placeholder="Ej. 3er tetramestre">
+      </div>
+
+      <div id="reg-grupo-wrap">
+        <div class="field-label">Grupo</div>
+        <select class="field-input" id="reg-grupo">
+          <option value="">Sin grupo por ahora</option>
+        </select>
+      </div>
+
+      <button class="btn-primary" onclick="registrar()">Crear cuenta</button>
+      <p class="login-hint" id="register-error" style="color:#CC0000;"></p>
+    </div>
   </div>
 </div>
 
@@ -681,9 +725,38 @@
   <div id="notif-list"></div>
 </div>
 
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
+
 <script>
+// ══════════════════════════════════════════════════════
+// ⚠️ CONFIGURACIÓN DE FIREBASE — reemplaza estos valores
+// con los de TU proyecto (Firebase Console → ⚙️ →
+// Configuración del proyecto → Tus apps → SDK setup).
+// ══════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBp2iUMvEnxtXesTiXKR-gq7FQe1mVnmFg",
+  authDomain: "unez-calendario.firebaseapp.com",
+  projectId: "unez-calendario",
+  storageBucket: "unez-calendario.firebasestorage.app",
+  messagingSenderId: "696384118200",
+  appId: "1:696384118200:web:428a1efee9ad16fc0e434d"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const dbFS = firebase.firestore();
+
+// Firebase Auth necesita un "correo". Como los usuarios solo
+// tienen matrícula, generamos un correo interno a partir de ella.
+function matriculaToEmail(matricula) {
+  return `${matricula.trim().toLowerCase()}@unez-calendario.app`;
+}
+
 // ── STATE ──
-let currentUser = { name: '', id: '', role: 'alumno' };
+let currentUser = { name: '', id: '', role: 'alumno', grado: '', grupoId: '', grupoNombre: '' };
 let selectedRole = 'alumno';
 let today = new Date();
 let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -692,13 +765,24 @@ let activeFilter = 'todos';
 let events = [];
 
 // ── CATEGORIES ──
+// tipo: 'general' = visible para toda la escuela · 'grupal' = solo para el grupo del autor
 const CATEGORIES = {
-  examen:       { label: 'Examen',      icon: '📝', color: '#EF4444', roles: ['maestro'] },
-  pago:         { label: 'Pago',        icon: '💳', color: '#F59E0B', roles: ['maestro'] },
-  conferencia:  { label: 'Conferencia', icon: '🎤', color: '#8B5CF6', roles: ['maestro'] },
-  evento:       { label: 'Evento',      icon: '🏫', color: '#CC0000', roles: ['maestro'] },
-  cumpleanos:   { label: 'Cumpleaños',  icon: '🎂', color: '#EC4899', roles: ['alumno','maestro'] },
-  falta:        { label: 'Falta col.',  icon: '🚫', color: '#6B7280', roles: ['alumno','maestro'] },
+  // ── Avisos GENERALES (toda la escuela) — creados por maestros y directivos ──
+  cancelacion:     { label: 'Cancelación de clases', icon: '🚫', color: '#EF4444', tipo: 'general', roles: ['maestro','directivo'] },
+  conferencia:     { label: 'Conferencia',           icon: '🎤', color: '#8B5CF6', tipo: 'general', roles: ['maestro','directivo'] },
+  evento_social:   { label: 'Evento social',         icon: '🎉', color: '#CC0000', tipo: 'general', roles: ['maestro','directivo'] },
+  marcha:          { label: 'Marcha',                icon: '🚩', color: '#F59E0B', tipo: 'general', roles: ['maestro','directivo'] },
+  examenes:        { label: 'Periodo de exámenes',   icon: '📝', color: '#DC2626', tipo: 'general', roles: ['maestro','directivo'] },
+  cierre_ciclo:    { label: 'Cierre de ciclo',        icon: '🔚', color: '#6B7280', tipo: 'general', roles: ['maestro','directivo'] },
+  inicio_ciclo:    { label: 'Inicio de ciclo',        icon: '🏁', color: '#10B981', tipo: 'general', roles: ['maestro','directivo'] },
+
+  // ── Avisos por GRUPO — visibles solo para los miembros del grupo ──
+  convivio:        { label: 'Convivio',            icon: '🥳', color: '#EC4899', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
+  falta_colectiva: { label: 'Falta colectiva',     icon: '🙅', color: '#6B7280', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
+  cumpleanos:      { label: 'Cumpleaños',          icon: '🎂', color: '#EC4899', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
+  tarea:           { label: 'Tarea',               icon: '📚', color: '#F59E0B', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
+  proyecto:        { label: 'Proyecto',            icon: '🛠️', color: '#8B5CF6', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
+  presentacion:    { label: 'Presentación',        icon: '🎯', color: '#CC0000', tipo: 'grupal', roles: ['alumno','maestro','directivo'] },
 };
 
 // ── SAMPLE DATA ──
@@ -751,23 +835,137 @@ function fmtDisplay(str) {
   return `${parseInt(d)} de ${months[parseInt(m)-1]}`;
 }
 
-// ── LOGIN ──
+// ── AUTH: LOGIN / REGISTRO ──
 function selectRole(role, btn) {
   selectedRole = role;
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.parentElement.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  // Directivos no pertenecen a un grupo/grado específico
+  const isDirectivo = role === 'directivo';
+  document.getElementById('reg-grado-wrap').style.display = isDirectivo ? 'none' : 'block';
+  document.getElementById('reg-grupo-wrap').style.display = isDirectivo ? 'none' : 'block';
 }
 
-function doLogin() {
-  const name = document.getElementById('login-name').value.trim();
-  const id = document.getElementById('login-id').value.trim();
-  if (!name) { alert('Ingresa tu nombre'); return; }
-  currentUser = { name, id: id || '0000', role: selectedRole };
-  document.getElementById('user-label').textContent = `${selectedRole === 'maestro' ? 'Maestro' : 'Alumno'} · ${currentUser.id}`;
+function showAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('tab-login-btn').classList.toggle('active', isLogin);
+  document.getElementById('tab-register-btn').classList.toggle('active', !isLogin);
+  if (!isLogin) cargarGruposEnSelect();
+}
+
+// Llena el <select> de grupos disponibles para el registro
+async function cargarGruposEnSelect() {
+  const sel = document.getElementById('reg-grupo');
+  sel.innerHTML = '<option value="">Sin grupo por ahora</option>';
+  try {
+    const snap = await dbFS.collection('grupos').orderBy('nombre').get();
+    snap.forEach(doc => {
+      const g = doc.data();
+      const opt = document.createElement('option');
+      opt.value = doc.id;
+      opt.textContent = `${g.nombre} (${g.grado})`;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('No se pudieron cargar los grupos:', e);
+  }
+}
+
+async function registrar() {
+  const errEl = document.getElementById('register-error');
+  errEl.textContent = '';
+  const name = document.getElementById('reg-name').value.trim();
+  const matricula = document.getElementById('reg-matricula').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const grado = document.getElementById('reg-grado').value.trim();
+  const grupoSel = document.getElementById('reg-grupo');
+  const grupoId = selectedRole === 'directivo' ? '' : grupoSel.value;
+  const grupoNombre = grupoId ? grupoSel.options[grupoSel.selectedIndex].textContent : '';
+
+  if (!name || !matricula || !password) {
+    errEl.textContent = 'Completa nombre, matrícula y contraseña.';
+    return;
+  }
+  if (password.length < 6) {
+    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    return;
+  }
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(matriculaToEmail(matricula), password);
+    const perfil = {
+      nombre: name,
+      matricula,
+      rol: selectedRole,
+      grado: selectedRole === 'directivo' ? '' : grado,
+      grupoId: grupoId || '',
+      grupoNombre: grupoNombre || '',
+      tonoNotificacion: 'default',
+      creado: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await dbFS.collection('usuarios').doc(cred.user.uid).set(perfil);
+
+    // Si se unió a un grupo, agregarlo a la lista de miembros
+    if (grupoId) {
+      await dbFS.collection('grupos').doc(grupoId).update({
+        miembros: firebase.firestore.FieldValue.arrayUnion(matricula)
+      });
+    }
+
+    await entrarConPerfil(perfil);
+  } catch (e) {
+    errEl.textContent = traducirErrorFirebase(e);
+  }
+}
+
+async function iniciarSesion() {
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  const matricula = document.getElementById('login-matricula').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!matricula || !password) {
+    errEl.textContent = 'Ingresa tu matrícula y contraseña.';
+    return;
+  }
+  try {
+    const cred = await auth.signInWithEmailAndPassword(matriculaToEmail(matricula), password);
+    const doc = await dbFS.collection('usuarios').doc(cred.user.uid).get();
+    if (!doc.exists) {
+      errEl.textContent = 'No se encontró tu perfil. Contacta a un administrador.';
+      return;
+    }
+    await entrarConPerfil(doc.data());
+  } catch (e) {
+    errEl.textContent = traducirErrorFirebase(e);
+  }
+}
+
+function traducirErrorFirebase(e) {
+  const code = e.code || '';
+  if (code.includes('email-already-in-use')) return 'Esa matrícula ya está registrada.';
+  if (code.includes('wrong-password') || code.includes('invalid-credential')) return 'Matrícula o contraseña incorrecta.';
+  if (code.includes('user-not-found')) return 'No existe una cuenta con esa matrícula.';
+  if (code.includes('weak-password')) return 'La contraseña es muy débil (mínimo 6 caracteres).';
+  if (code.includes('invalid-email')) return 'Matrícula inválida.';
+  return 'Ocurrió un error. Intenta de nuevo.';
+}
+
+async function entrarConPerfil(perfil) {
+  currentUser = {
+    name: perfil.nombre,
+    id: perfil.matricula,
+    role: perfil.rol,
+    grado: perfil.grado || '',
+    grupoId: perfil.grupoId || '',
+    grupoNombre: perfil.grupoNombre || ''
+  };
+  const rolLabel = { alumno: 'Alumno', maestro: 'Maestro', directivo: 'Directivo' }[currentUser.role] || currentUser.role;
+  document.getElementById('user-label').textContent = `${rolLabel} · ${currentUser.id}`;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   loadSampleEvents();
-  // Start calendar view on May 2026 (tetramestre start)
   viewDate = new Date(2026, 4, 1);
   selectedDate = new Date(today);
   renderAll();
@@ -775,9 +973,92 @@ function doLogin() {
 }
 
 function logout() {
+  auth.signOut();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   events = [];
+}
+
+// Mantiene la sesión si ya había iniciado sesión antes (recarga de página)
+auth.onAuthStateChanged(async (user) => {
+  if (user && document.getElementById('app').style.display !== 'flex') {
+    try {
+      const doc = await dbFS.collection('usuarios').doc(user.uid).get();
+      if (doc.exists) await entrarConPerfil(doc.data());
+    } catch (e) { console.error(e); }
+  }
+});
+
+// ── GRUPOS ──
+async function crearGrupo() {
+  if (currentUser.role !== 'maestro' && currentUser.role !== 'directivo') {
+    alert('Solo maestros y directivos pueden crear grupos.');
+    return;
+  }
+  const nombre = prompt('Nombre del nuevo grupo (ej. Sistemas 3A):');
+  if (!nombre) return;
+  const grado = prompt('Grado / tetramestre de este grupo (ej. 3er tetramestre):') || '';
+  try {
+    const ref = await dbFS.collection('grupos').add({
+      nombre: nombre.trim(),
+      grado: grado.trim(),
+      creadoPor: currentUser.id,
+      miembros: [currentUser.id],
+      creado: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast(`Grupo "${nombre}" creado ✅`);
+    renderMisGrupos();
+  } catch (e) {
+    console.error(e);
+    alert('No se pudo crear el grupo. Revisa tu conexión con Firebase.');
+  }
+}
+
+async function agregarMiembroAGrupo(grupoId, grupoNombre) {
+  const matricula = prompt(`Matrícula del alumno/maestro a agregar a "${grupoNombre}":`);
+  if (!matricula) return;
+  try {
+    await dbFS.collection('grupos').doc(grupoId).update({
+      miembros: firebase.firestore.FieldValue.arrayUnion(matricula.trim())
+    });
+    showToast('Miembro agregado ✅');
+    renderMisGrupos();
+  } catch (e) {
+    console.error(e);
+    alert('No se pudo agregar al miembro.');
+  }
+}
+
+async function renderMisGrupos() {
+  const cont = document.getElementById('mis-grupos-list');
+  if (!cont) return;
+  cont.innerHTML = '<p style="font-size:13px;color:#6B7280;">Cargando grupos…</p>';
+  try {
+    let query = dbFS.collection('grupos');
+    if (currentUser.role === 'maestro') {
+      query = query.where('creadoPor', '==', currentUser.id);
+    }
+    const snap = await query.get();
+    if (snap.empty) {
+      cont.innerHTML = '<p style="font-size:13px;color:#6B7280;">Aún no hay grupos. Crea uno con el botón de arriba.</p>';
+      return;
+    }
+    cont.innerHTML = '';
+    snap.forEach(doc => {
+      const g = doc.data();
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#F7F8FC;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-bottom:8px;';
+      div.innerHTML = `
+        <div style="font-weight:600;font-size:14px;">${g.nombre}</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:8px;">${g.grado || 'Sin grado'} · ${(g.miembros||[]).length} miembro(s)</div>
+        <button style="font-size:12px;padding:6px 10px;background:#CC0000;color:#fff;border:none;border-radius:8px;cursor:pointer;" onclick="agregarMiembroAGrupo('${doc.id}','${g.nombre.replace(/'/g,"\\'")}')">+ Agregar miembro</button>
+      `;
+      cont.appendChild(div);
+    });
+  } catch (e) {
+    console.error(e);
+    cont.innerHTML = '<p style="font-size:13px;color:#CC0000;">Error cargando grupos.</p>';
+  }
 }
 
 // ── RENDER ──
@@ -1037,15 +1318,20 @@ function saveEvent() {
   if (!title) { alert('Escribe un título'); return; }
   if (!selectedCat) { alert('Selecciona una categoría'); return; }
 
+  const catInfo = CATEGORIES[selectedCat] || {};
+  const rolAutor = currentUser.role === 'alumno' ? 'Tú' : `${currentUser.role === 'maestro' ? 'Prof.' : 'Dir.'} ${currentUser.name.split(' ')[0]}`;
+
   const ev = {
     id: Date.now(),
     date: fmt(selectedDate),
     title,
     cat: selectedCat,
+    tipo: catInfo.tipo || 'grupal',           // 'general' (toda la escuela) o 'grupal' (solo tu grupo)
+    grupoId: catInfo.tipo === 'general' ? '' : currentUser.grupoId,
     time: document.getElementById('ev-time').value,
     note: document.getElementById('ev-note').value.trim(),
     role: currentUser.role,
-    author: currentUser.role === 'maestro' ? `Prof. ${currentUser.name.split(' ')[0]}` : 'Tú',
+    author: rolAutor,
   };
 
   events.push(ev);
@@ -1107,11 +1393,16 @@ function showProfile() {
   panel.querySelector('.panel-title').textContent = 'Mi perfil';
   panel.querySelector('.panel-date').textContent = '';
   const myEvents = events.filter(e => e.author === 'Tú' || (currentUser.role === 'maestro' && e.role === 'maestro'));
+  const rolIcon = { alumno: '🎓', maestro: '👨‍🏫', directivo: '🏛️' }[currentUser.role] || '🎓';
+  const rolLabel = { alumno: 'Alumno', maestro: 'Maestro', directivo: 'Directivo' }[currentUser.role] || currentUser.role;
+  const puedeGestionarGrupos = currentUser.role === 'maestro' || currentUser.role === 'directivo';
+
   list.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:12px">
-      <div style="font-size:40px;text-align:center;margin-bottom:10px">${currentUser.role==='maestro'?'👨‍🏫':'🎓'}</div>
+      <div style="font-size:40px;text-align:center;margin-bottom:10px">${rolIcon}</div>
       <div style="text-align:center;font-size:18px;font-weight:700">${currentUser.name}</div>
-      <div style="text-align:center;font-size:13px;color:#6B7280;margin-bottom:16px">${currentUser.role==='maestro'?'Maestro':'Alumno'} · ${currentUser.id}</div>
+      <div style="text-align:center;font-size:13px;color:#6B7280;margin-bottom:4px">${rolLabel} · ${currentUser.id}</div>
+      ${currentUser.grupoNombre ? `<div style="text-align:center;font-size:12px;color:#6B7280;margin-bottom:16px">${currentUser.grado ? currentUser.grado + ' · ' : ''}${currentUser.grupoNombre}</div>` : '<div style="margin-bottom:16px"></div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div style="background:#FFE8E8;border-radius:12px;padding:12px;text-align:center">
           <div style="font-size:24px;font-weight:700;color:#CC0000">${events.length}</div>
@@ -1123,8 +1414,21 @@ function showProfile() {
         </div>
       </div>
     </div>
+
+    ${puedeGestionarGrupos ? `
+    <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px">👥 Grupos</div>
+        <button onclick="crearGrupo()" style="font-size:12px;padding:6px 10px;background:#CC0000;color:#fff;border:none;border-radius:8px;cursor:pointer;">+ Crear grupo</button>
+      </div>
+      <div id="mis-grupos-list"><p style="font-size:13px;color:#6B7280;">Cargando…</p></div>
+    </div>
+    ` : ''}
+
     <button class="btn-primary" onclick="logout()" style="width:100%;border-radius:12px;padding:12px">Cerrar sesión</button>
   `;
+
+  if (puedeGestionarGrupos) renderMisGrupos();
 }
 
 // ── PWA SERVICE WORKER ──
@@ -1222,8 +1526,6 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 3000);
 }
 
-// Override doLogin to also schedule notifications
-const _origDoLogin = doLogin;
 </script>
 </body>
 </html>
